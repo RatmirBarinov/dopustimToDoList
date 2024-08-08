@@ -1,35 +1,43 @@
-from flask import Flask, render_template, request
+from flask import Flask
+from todolist import todolist_view
+import sqlite3
 
 app = Flask(__name__)
 
 
-@app.route('/')
-def main_page():
-    return render_template('index.html')
+def create_sqlite_database(filename):
+    """ create a database connection to an SQLite database """
+    conn = None
+    try:
+        conn = sqlite3.connect(filename)
+        print(sqlite3.sqlite_version)
+    except sqlite3.Error as e:
+        print(e)
+    finally:
+        if conn:
+            conn.close()
 
 
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-
-@app.route('/user/<username>')
-def user_profile(username):
-    return f"Это профиль пользователя {username}"
-
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if username != '123' or password != '123':
-            error = 'Invalid username or password. Please try again.'
-        else:
-            return 'Вы вошли в систему!'
-    return render_template('login.html', error=error)
+def create_tables():
+    sql_statements = [
+        """CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY, 
+                name TEXT NOT NULL, 
+                content TEXT NOT NULL
+        );"""]
+    # create a database connection
+    try:
+        with sqlite3.connect('my.db') as conn:
+            cursor = conn.cursor()
+            for statement in sql_statements:
+                cursor.execute(statement)
+            conn.commit()
+    except sqlite3.Error as e:
+        print(e)
 
 
 if __name__ == '__main__':
+    create_sqlite_database("my.db")
+    create_tables()
+    app.register_blueprint(todolist_view)
     app.run(debug=True)
